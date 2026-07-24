@@ -1,5 +1,4 @@
-# Wreck.github.io
-# UK Wreck Dives — Live Dive-Now Dashboard
+# UK Wreck Dives Dashboard
 
 A lightweight, responsive dashboard for viewing current wind, wave and estimated tidal conditions at wreck-diving sites around the United Kingdom.
 
