@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Wreck Dives — Live Map</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  #map{height:70vh;min-height:460px;margin:8px 18px;border:1px solid var(--panelb);border-radius:16px;box-shadow:0 0 30px rgba(63,224,208,.08);background:#0a1320}
+  .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9) saturate(.85)}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0e1a2b;color:var(--ink);border:1px solid var(--panelb)}
+  .leaflet-popup-content{font-family:"Segoe UI",system-ui,Arial,sans-serif;font-size:13px;margin:12px 14px}
+  .leaflet-popup-content b{color:#fff}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--mut)}
+  .leaflet-control-attribution{background:rgba(7,11,20,.7)!important}
+  .leaflet-control-attribution,.leaflet-control-attribution a{color:var(--mut)!important}
+  .leaflet-bar a{background:#0e1a2b;color:var(--ink);border-color:var(--panelb)}
+</style>
+</head>
+<body>
+<nav class="top">
+  <span class="brand">◈ UK DIVE SITES</span>
+  <a href="index.html">Home</a>
+  <a href="wrecks.html">Wreck Dives</a>
+  <a href="map.html" class="active">Map</a>
+  <a href="inland.html">Inland Dives</a>
+</nav>
+<header><h1>🗺️ Live Dive Map <span class="tag">// conditions now</span></h1></header>
+<div class="bar">
+  <span class="chip go" id="cGo">GO 0</span>
+  <span class="chip cau" id="cCau">CAUTION 0</span>
+  <span class="chip no" id="cNo">NO-GO 0</span>
+  <span class="upd" id="upd">Loading…</span>
+  <button onclick="load()">↻ REFRESH</button>
+</div>
+<div id="map"></div>
+<div class="wrap">
+  <div class="legend">
+    <span class="dot go"></span><b>GO</b> · <span class="dot cau"></span><b>CAUTION</b> · <span class="dot no"></span><b>NO-GO</b> ·
+    grey = no data / no-dive. Marker colour = each wreck’s live Dive-Now status. Click a marker for conditions and a link to its detail page.
+    If the map background is blank but markers show, your browser is blocking the tile server — the data still works.
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+var map,layer;
+function mapReady(){return typeof L!=='undefined'&&map&&layer;}
+function initMap(){
+  if(typeof L==='undefined'){
+    document.getElementById('upd').innerHTML="<span class='err'>Map library didn’t load — an ad-blocker or Brave Shields may be blocking the CDN. Allow cdnjs.cloudflare.com &amp; openstreetmap.org (or turn Shields off for this page), then hit Refresh.</span>";
+    return false;}
+  map=L.map('map',{scrollWheelZoom:true}).setView([55.6,-4.6],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
+  layer=L.layerGroup().addTo(map);
+  return true;
+}
+function colorFor(c){return {go:"#22e39a",cau:"#ffcf4d",no:"#ff5d6c",nd:"#7f8fa6"}[c]||"#7f8fa6";}
+function load(){
+  if(!mapReady())return;
+  document.getElementById('upd').textContent="Loading…";
+  fetchAll(2).then(function(d){
+    layer.clearLayers();
+    var go=0,cau=0,no=0,pts=[];
+    SITES.forEach(function(s,i){
+      var c=computeConditions(s,d.F[i],d.M[i],d.now);
+      var col=colorFor(s.nd?"nd":(c.cls||"nd"));
+      if(c.v===0)go++;else if(c.v===1)cau++;else if(c.v===2||c.v===3)no++;
+      var pill="<span class='pill "+(s.nd?"nd":c.cls)+"'>"+(s.nd?"NO DIVE":c.lab)+"</span>";
+      var wind=(c.gustKn==null)?"—":fmtWind(c.windKn)+" "+(windU())+" (g "+fmtWind(c.gustKn)+")";
+      var wv=waveTxt(c.wave)||"—";
+      var tide=s.nd?"":("<br>Tide: "+esc(c.tideMain)+(c.tideSub?" <span class='sub'>("+esc(c.tideSub)+")</span>":""));
+      var pop="<b>"+esc(s.n)+"</b><br><span class='sub'>"+esc(s.r)+"</span><br>"+pill+
+        "<br>Wind: "+wind+"<br>Waves: "+wv+tide+
+        "<br><a class='fc' href='"+wreckURL(s)+"'>Details →</a> &nbsp; <a class='fc' href='"+tideURL(s.r)+"' target='_blank' rel='noopener'>tides ↗</a>";
+      var m=L.circleMarker([s.lat,s.lon],{radius:9,color:'#0a0e17',weight:1.5,fillColor:col,fillOpacity:.95});
+      m.bindPopup(pop);m.bindTooltip(s.n,{direction:'top'});m.addTo(layer);
+      pts.push([s.lat,s.lon]);
+    });
+    document.getElementById('cGo').textContent="GO "+go;
+    document.getElementById('cCau').textContent="CAUTION "+cau;
+    document.getElementById('cNo').textContent="NO-GO "+no;
+    var now=new Date();
+    document.getElementById('upd').innerHTML="Updated <b class='num'>"+now.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+", "+now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})+"</b>";
+    if(!window._fit){map.fitBounds(pts,{padding:[40,40]});window._fit=1;}
+  }).catch(function(e){
+    document.getElementById('upd').innerHTML="<span class='err'>Live data unavailable ("+esc(e.message)+")</span>";
+  });
+}
+if(initMap()){load();setInterval(load,15*60*1000);}
+</script>
+</body>
+</html>
