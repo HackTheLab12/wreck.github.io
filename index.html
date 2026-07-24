@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Wreck Dives — Live Dive-Now Dashboard</title>
+<style>
+  :root{
+    --bg0:#070b14;--bg1:#0c1424;--panel:rgba(255,255,255,.04);--panelb:rgba(90,200,255,.16);
+    --cyan:#3fe0d0;--blue:#49b6ff;--ink:#e8f2fb;--mut:#8fa6c0;
+    --go:#22e39a;--gob:rgba(34,227,154,.14);--cau:#ffcf4d;--caub:rgba(255,207,77,.14);
+    --no:#ff5d6c;--nob:rgba(255,93,108,.14);--nd:#7f8fa6;--ndb:rgba(127,143,166,.14);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;color:var(--ink);font-family:"Segoe UI",system-ui,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%,rgba(73,182,255,.14),transparent 60%),
+      radial-gradient(900px 500px at 0% 0%,rgba(63,224,208,.10),transparent 55%),
+      linear-gradient(180deg,var(--bg1),var(--bg0));
+    background-attachment:fixed;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.4;
+    background-image:linear-gradient(rgba(90,160,220,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(90,160,220,.05) 1px,transparent 1px);
+    background-size:34px 34px;mask-image:radial-gradient(circle at 50% 20%,#000,transparent 90%)}
+  .num{font-variant-numeric:tabular-nums;font-family:ui-monospace,"Consolas",monospace}
+  header{padding:22px 26px 8px;position:relative}
+  header h1{margin:0;font-size:22px;letter-spacing:.5px;text-shadow:0 0 22px rgba(63,224,208,.35)}
+  header h1 .tag{color:var(--cyan)}
+  header p{margin:6px 0 0;font-size:13px;color:var(--mut);max-width:960px}
+  .bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 26px;margin:8px 18px;
+    background:var(--panel);border:1px solid var(--panelb);border-radius:14px;backdrop-filter:blur(8px);position:sticky;top:10px;z-index:8}
+  .chip{padding:6px 14px;border-radius:10px;font-size:13px;font-weight:700;letter-spacing:.4px;border:1px solid transparent}
+  .chip.go{background:var(--gob);color:var(--go);border-color:rgba(34,227,154,.35);box-shadow:0 0 16px rgba(34,227,154,.18)}
+  .chip.cau{background:var(--caub);color:var(--cau);border-color:rgba(255,207,77,.35)}
+  .chip.no{background:var(--nob);color:var(--no);border-color:rgba(255,93,108,.35)}
+  .moon{font-size:12px;color:var(--mut);padding:5px 12px;border:1px solid var(--panelb);border-radius:10px;background:rgba(255,255,255,.03)}
+  .moon b{color:var(--blue)}
+  .upd{font-size:12px;color:var(--mut)}
+  button{margin-left:auto;background:linear-gradient(135deg,var(--cyan),var(--blue));color:#04121a;border:0;
+    padding:10px 18px;border-radius:10px;font-size:14px;cursor:pointer;font-weight:800;letter-spacing:.4px;box-shadow:0 0 20px rgba(63,224,208,.35)}
+  button:hover{filter:brightness(1.08)}
+  .wrap{padding:6px 26px 44px}
+  .legend{font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--panelb);border-radius:12px;padding:12px 16px;margin:10px 0 18px;line-height:1.7}
+  .legend b{color:var(--ink)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .dot.go{background:var(--go);box-shadow:0 0 8px var(--go)}.dot.cau{background:var(--cau);box-shadow:0 0 8px var(--cau)}.dot.no{background:var(--no);box-shadow:0 0 8px var(--no)}
+  .rg{margin:22px 0 8px;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
+  .rg::before{content:"▸ "}
+  .tablewrap{overflow-x:auto;border-radius:14px}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--panel);border:1px solid var(--panelb);border-radius:14px;overflow:hidden;backdrop-filter:blur(6px);min-width:920px}
+  th,td{padding:11px 13px;text-align:left;font-size:13px;border-bottom:1px solid rgba(120,170,220,.10);vertical-align:middle}
+  th{background:rgba(73,182,255,.10);color:var(--blue);font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase}
+  tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:rgba(73,182,255,.06)}
+  td.site{font-weight:700;color:#fff}
+  td.site a.site-link{color:#fff;text-decoration:none;border-bottom:1px dashed rgba(63,224,208,.55);transition:.15s}
+  td.site a.site-link:hover{color:var(--cyan);border-bottom-color:var(--cyan);text-shadow:0 0 10px rgba(63,224,208,.5)}
+  .pill{display:inline-block;padding:5px 11px;border-radius:10px;font-weight:800;font-size:12px;letter-spacing:.6px;white-space:nowrap;border:1px solid transparent}
+  .pill.go{background:var(--gob);color:var(--go);border-color:rgba(34,227,154,.4);box-shadow:0 0 14px rgba(34,227,154,.22)}
+  .pill.cau{background:var(--caub);color:var(--cau);border-color:rgba(255,207,77,.4)}
+  .pill.no{background:var(--nob);color:var(--no);border-color:rgba(255,93,108,.4);box-shadow:0 0 14px rgba(255,93,108,.18)}
+  .pill.nd{background:var(--ndb);color:var(--nd);border-color:rgba(127,143,166,.4)}
+  .tide{font-weight:700}.tide.ok{color:var(--go)}.tide.slack{color:var(--cau)}
+  a.fc{color:var(--cyan);text-decoration:none;font-weight:700}a.fc:hover{text-shadow:0 0 10px rgba(63,224,208,.6)}
+  .sub{color:var(--mut);font-size:11px}
+  .spark{display:flex;gap:2px;align-items:flex-end}
+  .spark span{width:11px;height:20px;border-radius:2px;display:inline-block;opacity:.9}
+  .spark .go{background:var(--go)}.spark .cau{background:var(--cau)}.spark .no{background:var(--no)}.spark .na{background:#33415a}
+  .best{font-size:10px;color:var(--mut);margin-top:4px;display:block;white-space:nowrap}
+  .best b{color:var(--go)}
+  .err{color:var(--no);font-size:13px;background:var(--nob);border:1px solid rgba(255,93,108,.35);padding:12px 14px;border-radius:10px}
+  footer{font-size:11px;color:var(--mut);padding:0 26px 34px;line-height:1.7;max-width:1000px}
+</style>
+</head>
+<body>
+<header>
+  <h1>◈ UK WRECK DIVES <span class="tag">// LIVE DIVE-NOW</span></h1>
+  <p>Live wind &amp; waves by each site’s coordinates (Open-Meteo) + a 12-hour outlook and an astronomical tide-phase estimate. Refreshes every time you open the page — weather is looked up by location. Tide links open tidetime.org for the nearest port.</p>
+</header>
+<div class="bar">
+  <span class="chip go" id="cGo">GO 0</span>
+  <span class="chip cau" id="cCau">CAUTION 0</span>
+  <span class="chip no" id="cNo">NO-GO 0</span>
+  <span class="moon" id="moon">Tide: —</span>
+  <span class="upd" id="upd">Loading…</span>
+  <span class="moon">⟳ auto-refresh 15 min</span>
+  <button onclick="load()">↻ REFRESH</button>
+</div>
+<div class="wrap">
+  <div class="legend">
+    <b>“Dive Now?”</b> (indicative surface aid — not a dive plan):
+    <span class="dot go"></span><b>GO</b> gusts ≤ 16 kn &amp; waves ≤ 0.8 m •
+    <span class="dot cau"></span><b>CAUTION</b> gusts ≤ 24 kn &amp; waves ≤ 1.3 m •
+    <span class="dot no"></span><b>NO-GO</b> gusts &gt; 24 kn or waves &gt; 1.3 m. &nbsp;
+    <b>Next 12 h</b> = hourly outlook (one block per hour, same colour scale) so you can spot the calm window — “best ~HH:00” marks the first best hour. &nbsp;
+    <b>Tide</b>: slack-required wrecks are <b>capped at CAUTION</b> and show an <b>estimated</b> phase + spring/neap; the <b>tides ↗</b> link gives authoritative times. Wrecks marked <b>NO DIVE</b> are legally off-limits.
+  </div>
+  <div id="out"><p class="sub">Fetching live conditions…</p></div>
+</div>
+<footer>
+  Wind/waves &amp; 12-h outlook: Open-Meteo + Open-Meteo Marine (free, keyless). Tide phase is estimated from the Moon’s transit and is <b>approximate</b> — use the tidetime.org links for authoritative times. Forecast links open yr.no for the exact coordinates.
+</footer>
+<script>
+const SITES=[
+ {n:"SMS Markgraf",r:"Scapa Flow, Orkney",lat:58.872,lon:-3.170,lvl:"Technical",dep:"24–45m",td:"none",hwi:8.0},
+ {n:"SMS Kronprinz Wilhelm",r:"Scapa Flow, Orkney",lat:58.876,lon:-3.171,lvl:"Adv–Tech",dep:"12–38m",td:"none",hwi:8.0},
+ {n:"SMS Cöln",r:"Scapa Flow, Orkney",lat:58.884,lon:-3.155,lvl:"Advanced",dep:"22–36m",td:"none",hwi:8.0},
+ {n:"SMS Karlsruhe",r:"Scapa Flow, Orkney",lat:58.885,lon:-3.198,lvl:"Recreational",dep:"14–27m",td:"none",hwi:8.0},
+ {n:"SMS Brummer",r:"Scapa Flow, Orkney",lat:58.884,lon:-3.152,lvl:"Advanced",dep:"22–36m",td:"none",hwi:8.0},
+ {n:"HMS Royal Oak",r:"Scapa Flow, Orkney",lat:58.931,lon:-2.984,lvl:"NO DIVE",dep:"33m",nd:true},
+ {n:"SS Somali",r:"Farne Islands, Northumberland",lat:55.553,lon:-1.607,lvl:"Advanced",dep:"20–30m",td:"slack",hwi:3.5},
+ {n:"Chris Christensen",r:"Farne Islands, Northumberland",lat:55.639,lon:-1.604,lvl:"Advanced",dep:"20–33m",td:"essential",hwi:3.5},
+ {n:"SS Glanmire",r:"St Abbs & Eyemouth",lat:55.902,lon:-2.132,lvl:"Advanced",dep:"20–30m",td:"slack",hwi:3.5},
+ {n:"HMHS Rohilla",r:"Whitby, North Yorkshire",lat:54.4996,lon:-0.5893,lvl:"Recreational",dep:"6–16m",td:"none",hwi:3.5},
+ {n:"UC-70",r:"Whitby, North Yorkshire",lat:54.527,lon:-0.669,lvl:"Advanced",dep:"22–24m",td:"essential",hwi:3.5},
+ {n:"The Kimya",r:"Anglesey, North Wales",lat:53.159,lon:-4.449,lvl:"Recreational",dep:"6–15m",td:"none",hwi:9.0},
+ {n:"SS Missouri",r:"Anglesey, North Wales",lat:53.320,lon:-4.700,lvl:"Recreational",dep:"5–15m",td:"slack",hwi:9.0},
+ {n:"James Eagan Layne",r:"Whitsand Bay / Plymouth",lat:50.3268,lon:-4.2453,lvl:"Recreational",dep:"8–24m",td:"none",hwi:5.5},
+ {n:"HMS Scylla",r:"Whitsand Bay / Plymouth",lat:50.335,lon:-4.246,lvl:"Recreational",dep:"9–24m",td:"none",hwi:5.5},
+ {n:"Countess of Erne",r:"Portland & Weymouth, Dorset",lat:50.573,lon:-2.430,lvl:"Recreational",dep:"7–15m",td:"none",hwi:6.5},
+ {n:"M2 Submarine",r:"Portland & Weymouth, Dorset",lat:50.545,lon:-2.560,lvl:"Advanced",dep:"30–36m",td:"essential",hwi:6.5},
+ {n:"SS Salsette",r:"Portland & Weymouth, Dorset",lat:50.520,lon:-2.760,lvl:"Technical",dep:"27–45m",td:"slack",hwi:6.5},
+ {n:"Aeolian Sky",r:"Portland & Weymouth, Dorset",lat:50.553,lon:-2.352,lvl:"Advanced",dep:"25–30m",td:"slack",hwi:6.5},
+ {n:"SS Breda",r:"Oban, Argyll",lat:56.476,lon:-5.418,lvl:"Recreational",dep:"9–30m",td:"none",hwi:1.0},
+ {n:"SS Thesis",r:"Oban, Argyll",lat:56.499,lon:-5.691,lvl:"Advanced",dep:"20–32m",td:"essential",hwi:1.0},
+ {n:"SS Shuna",r:"Oban, Argyll",lat:56.530,lon:-5.830,lvl:"Advanced",dep:"26–32m",td:"none",hwi:1.0},
+ {n:"Madam Alice",r:"Oban, Argyll",lat:56.452,lon:-5.485,lvl:"Advanced",dep:"32–38m",td:"slack",hwi:1.0},
+ {n:"SS Hispania",r:"Sound of Mull (Lochaline)",lat:56.582,lon:-5.987,lvl:"Advanced",dep:"15–30m",td:"essential",hwi:1.0},
+ {n:"SS Rondo",r:"Sound of Mull (Lochaline)",lat:56.538,lon:-5.912,lvl:"Adv–Tech",dep:"8–50m",td:"essential",hwi:1.0},
+ {n:"SS Aurania",r:"Sound of Mull (Lochaline)",lat:56.602,lon:-6.325,lvl:"Advanced",dep:"9–26m",td:"slack",hwi:1.0},
+ {n:"Glen Strathallan",r:"Plymouth Sound",lat:50.345,lon:-4.130,lvl:"Recreational",dep:"10–15m",td:"none",hwi:5.5},
+ {n:"SS Wallachia",r:"Firth of Clyde",lat:55.862,lon:-4.953,lvl:"Advanced",dep:"30–34m",td:"slack",hwi:2.0},
+ {n:"MV Akka",r:"Firth of Clyde",lat:55.942,lon:-4.918,lvl:"Advanced",dep:"12–35m",td:"essential",hwi:2.0},
+ {n:"SS Kintyre",r:"Firth of Clyde",lat:55.870,lon:-4.900,lvl:"Technical",dep:"40–48m",td:"essential",hwi:2.0}
+];
+const TIDETIME={
+ "Scapa Flow, Orkney":"stromness","Farne Islands, Northumberland":"seahouses","St Abbs & Eyemouth":"eyemouth",
+ "Whitby, North Yorkshire":"whitby","Anglesey, North Wales":"holyhead","Whitsand Bay / Plymouth":"plymouth",
+ "Portland & Weymouth, Dorset":"portland","Oban, Argyll":"oban","Sound of Mull (Lochaline)":"oban",
+ "Plymouth Sound":"plymouth","Firth of Clyde":"greenock"};
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+const D2R=Math.PI/180,R2D=180/Math.PI;
+function n360(x){x%=360;return x<0?x+360:x}
+function jdc(dt){return dt.getTime()/86400000+2440587.5-2451545.0}
+function moonRA(d){const L=n360(218.316+13.176396*d),M=(134.963+13.064993*d)*D2R,F=(93.272+13.229350*d)*D2R;
+  const lon=(L+6.289*Math.sin(M))*D2R,lat=(5.128*Math.sin(F))*D2R,e=23.4397*D2R;
+  return n360(Math.atan2(Math.sin(lon)*Math.cos(e)-Math.tan(lat)*Math.sin(e),Math.cos(lon))*R2D);}
+function gmst(d){return n360(280.46061837+360.98564736629*d)}
+function springFactor(dt){const d=jdc(dt);const De=n360(297.850+12.190749*d)*D2R;return Math.abs(Math.cos(De));}
+function fmtDur(h){if(h<0)h+=12.4206;const m=Math.round(h*60);return m>=60?Math.floor(m/60)+"h "+(m%60)+"m":m+"m";}
+function tidePhase(dt,lonEast,hwi){
+  const d=jdc(dt),ra=moonRA(d),lst=n360(gmst(d)+lonEast);let H=n360(lst-ra);
+  const hSinceTransit=(H%180)/14.492;
+  let hSinceHW=((hSinceTransit-hwi)%12.4206+12.4206)%12.4206;
+  let x=hSinceHW;if(x>6.2103)x-=12.4206;
+  const ax=Math.abs(x);const nextHW=12.4206-hSinceHW;let nextLW=6.2103-hSinceHW;if(nextLW<0)nextLW+=12.4206;
+  const toSlack=Math.min(nextHW,nextLW);
+  let phase=(ax<1||Math.abs(ax-6.2103)<1)?"Slack":(x>0?"Ebbing":"Flooding");
+  return {phase,toSlack};
+}
+function infoURL(s){var area=s.r.split(/[,(]/)[0].trim();return "https://www.google.com/search?q="+encodeURIComponent(s.n+" wreck "+area);}
+function verdict(gust,wave){let w=gust<=16?0:gust<=24?1:2;let s=(wave==null)?0:(wave<=0.8?0:(wave<=1.3?1:2));return Math.max(w,s);}
+const LAB=["GO","CAUTION","NO-GO"],CLS=["go","cau","no"];
+function outlook(fi,mi,curtime){
+  if(!fi||!fi.hourly||!fi.hourly.time)return null;
+  const ft=fi.hourly.time,fg=fi.hourly.wind_gusts_10m;
+  const key=curtime.slice(0,13);
+  let idx=ft.findIndex(t=>t.slice(0,13)===key); if(idx<0)idx=ft.findIndex(t=>t>=curtime); if(idx<0)idx=0;
+  const mt=(mi&&mi.hourly&&mi.hourly.time)?mi.hourly.time:null;
+  const mw=(mi&&mi.hourly)?mi.hourly.wave_height:null;
+  let midx=-1; if(mt){midx=mt.findIndex(t=>t.slice(0,13)===key); if(midx<0)midx=mt.findIndex(t=>t>=curtime);}
+  const hrs=[];
+  for(let h=0;h<12;h++){const gi=idx+h; if(gi>=ft.length)break;
+    const gust=(fg[gi]!=null)?Math.round(fg[gi]):null;
+    let wave=null; if(mt&&midx>=0&&(midx+h)<mw.length&&mw[midx+h]!=null)wave=mw[midx+h];
+    const v=(gust==null)?3:verdict(gust,wave);
+    hrs.push({t:ft[gi].slice(11,16),gust,wave,v});}
+  return hrs;
+}
+async function fetchJSON(u){const r=await fetch(u);if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}
+function asArr(d){return Array.isArray(d)?d:[d];}
+async function load(){
+  document.getElementById("upd").textContent="Loading…";
+  const now=new Date();
+  const sf=springFactor(now);const springs=sf>0.6?"Springs":sf<0.4?"Neaps":"Mid-range";
+  document.getElementById("moon").innerHTML="Tide today: <b>"+springs+"</b> <span class='sub'>(est)</span>";
+  const lats=SITES.map(s=>s.lat).join(","),lons=SITES.map(s=>s.lon).join(",");
+  const fUrl="https://api.open-meteo.com/v1/forecast?latitude="+lats+"&longitude="+lons+"&current=wind_speed_10m,wind_gusts_10m,weather_code&hourly=wind_speed_10m,wind_gusts_10m&wind_speed_unit=kn&forecast_days=2&timezone=auto";
+  const mUrl="https://marine-api.open-meteo.com/v1/marine?latitude="+lats+"&longitude="+lons+"&current=wave_height,swell_wave_height&hourly=wave_height&forecast_days=2&timezone=auto";
+  let F=[],M=[];
+  try{
+    const [fr,mr]=await Promise.allSettled([fetchJSON(fUrl),fetchJSON(mUrl)]);
+    if(fr.status==="fulfilled")F=asArr(fr.value); else throw fr.reason;
+    M=(mr.status==="fulfilled")?asArr(mr.value):[];
+  }catch(e){
+    document.getElementById("out").innerHTML="<p class='err'>Couldn’t reach the weather service ("+esc(e.message)+"). If you opened the file directly, try Chrome/Edge, or check your connection. The per-site links below still work.</p>"+regionsOnly();
+    document.getElementById("upd").textContent="Live data unavailable"; return;
+  }
+  const stamp=now.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})+", "+now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  const rows=SITES.map((s,i)=>{
+    const cur=(F[i]&&F[i].current)?F[i].current:null;
+    const mar=(M[i]&&M[i].current)?M[i].current:null;
+    const gust=cur?Math.round(cur.wind_gusts_10m):null;
+    const wind=cur?Math.round(cur.wind_speed_10m):null;
+    const wave=(mar&&mar.wave_height!=null)?mar.wave_height:null;
+    const hrs=cur?outlook(F[i],M[i],cur.time):null;
+    let v,cls,lab,tideMain,tideSub,tcls;
+    if(s.nd){v=-1;cls="nd";lab="NO DIVE";tideMain="—";tideSub="";tcls="";}
+    else if(gust==null){v=3;cls="no";lab="—";tideMain="—";tideSub="";tcls="";}
+    else{
+      v=verdict(gust,wave);
+      if(s.td==="none"){tideMain="Any state";tcls="ok";tideSub="";}
+      else{const tp=tidePhase(now,s.lon,s.hwi);v=Math.max(v,1);tcls="slack";
+        tideMain=(s.td==="essential"?"Slack essential":"Slack advised");
+        tideSub=tp.phase+" · slack ~"+fmtDur(tp.toSlack)+" (est)";}
+      cls=CLS[v];lab=LAB[v];
+    }
+    return {s,gust,wind,wave,hrs,v,cls,lab,tideMain,tideSub,tcls,stamp};
+  });
+  let go=0,cau=0,no=0; rows.forEach(r=>{if(r.v===0)go++;else if(r.v===1)cau++;else if(r.v===2||r.v===3)no++;});
+  document.getElementById("cGo").textContent="GO "+go;
+  document.getElementById("cCau").textContent="CAUTION "+cau;
+  document.getElementById("cNo").textContent="NO-GO "+no;
+  document.getElementById("upd").innerHTML="Updated <b class='num'>"+stamp+"</b>";
+  const order=[],byR={};
+  rows.forEach(r=>{const k=r.s.r;if(!byR[k]){byR[k]=[];order.push(k);}byR[k].push(r);});
+  let html="";
+  order.forEach(k=>{
+    const slug=TIDETIME[k]||"all";
+    html+="<div class='rg'>"+esc(k)+"</div><div class='tablewrap'><table><thead><tr>"+
+      "<th>Site</th><th>Level</th><th>Depth</th><th>Wind (gust)</th><th>Waves</th><th>Tide (est)</th><th>Next 12 h</th><th>Dive Now?</th><th>Updated</th><th>Forecast</th></tr></thead><tbody>";
+    byR[k].forEach(r=>{
+      const yr="https://www.yr.no/en/forecast/daily-table/"+r.s.lat+","+r.s.lon;
+      const tt="https://www.tidetime.org/europe/united-kingdom/"+slug+".htm";
+      const tideLink="<a class='fc' href='"+tt+"' target='_blank' rel='noopener'>tides ↗</a>";
+      const windTxt=r.wind==null?"—":"<span class='num'>"+r.wind+"</span> kn <span class='sub'>(g "+r.gust+")</span>";
+      const waveTxt=r.wave==null?"<span class='sub'>—</span>":"<span class='num'>"+r.wave.toFixed(1)+"</span> m";
+      const pill=r.s.nd?"<span class='pill nd'>NO DIVE</span>":"<span class='pill "+r.cls+"'>"+r.lab+"</span>";
+      let tideCell;
+      if(r.s.nd){tideCell="<span class='sub'>protected · "+tideLink+"</span>";}
+      else if(r.tcls==="ok"){tideCell="<span class='tide ok'>Any state</span><br><span class='sub'>"+tideLink+"</span>";}
+      else{tideCell="<span class='tide slack'>"+esc(r.tideMain)+"</span><br><span class='sub'>"+esc(r.tideSub)+" · "+tideLink+"</span>";}
+      let outCell="<span class='sub'>—</span>";
+      if(r.hrs&&r.hrs.length){
+        const bars=r.hrs.map(h=>"<span class='"+(h.v<3?CLS[h.v]:'na')+"' title='"+h.t+" · g"+(h.gust==null?"—":h.gust)+"kn · "+(h.wave!=null?h.wave.toFixed(1)+"m":"—")+" · "+(h.v<3?LAB[h.v]:"n/a")+"'></span>").join("");
+        const minV=Math.min.apply(null,r.hrs.map(h=>h.v));
+        const best=r.hrs.find(h=>h.v===minV);
+        const note=minV<=1?("best <b>~"+best.t+"</b>"):(minV===2?"rough all window":"—");
+        outCell="<div class='spark'>"+bars+"</div><span class='best'>"+note+"</span>";
+      }
+      html+="<tr><td class='site'><a class='site-link' href='"+infoURL(r.s)+"' target='_blank' rel='noopener'>"+esc(r.s.n)+"</a></td><td class='sub'>"+esc(r.s.lvl)+"</td><td class='sub'>"+esc(r.s.dep)+"</td>"+
+        "<td>"+windTxt+"</td><td>"+waveTxt+"</td><td>"+tideCell+"</td><td>"+outCell+"</td><td>"+pill+"</td>"+
+        "<td class='sub num'>"+esc(r.stamp)+"</td><td><a class='fc' href='"+yr+"' target='_blank' rel='noopener'>yr.no ↗</a></td></tr>";
+    });
+    html+="</tbody></table></div>";
+  });
+  document.getElementById("out").innerHTML=html;
+}
+function regionsOnly(){
+  const order=[],byR={};
+  SITES.forEach(s=>{if(!byR[s.r]){byR[s.r]=[];order.push(s.r);}byR[s.r].push(s);});
+  let html="";
+  order.forEach(k=>{const slug=TIDETIME[k]||"all";
+    html+="<div class='rg'>"+esc(k)+"</div><div class='tablewrap'><table><tbody>";
+    byR[k].forEach(s=>{const yr="https://www.yr.no/en/forecast/daily-table/"+s.lat+","+s.lon;
+      const tt="https://www.tidetime.org/europe/united-kingdom/"+slug+".htm";
+      html+="<tr><td class='site'><a class='site-link' href='"+infoURL(s)+"' target='_blank' rel='noopener'>"+esc(s.n)+"</a></td><td><a class='fc' href='"+yr+"' target='_blank' rel='noopener'>yr.no ↗</a></td><td><a class='fc' href='"+tt+"' target='_blank' rel='noopener'>tides ↗</a></td></tr>";});
+    html+="</tbody></table></div>";});
+  return html;
+}
+load();
+// auto-refresh every 15 minutes while the page stays open
+setInterval(load, 15*60*1000);
+</script>
+</body>
+</html>
