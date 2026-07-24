@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Inland Dive Sites</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  td.site .type{display:block;font-size:11px;color:var(--mut);font-weight:400;margin-top:2px}
+  td.site .lnk{display:block;margin-top:4px;font-size:11px}
+  .yes{color:var(--go);font-weight:800}.no{color:var(--no);font-weight:800}
+  .lvlwild{color:var(--no);font-weight:700}
+</style>
+</head>
+<body>
+<nav class="top">
+  <span class="brand">◈ UK DIVE SITES</span>
+  <a href="index.html">Home</a>
+  <a href="wrecks.html">Wreck Dives</a>
+  <a href="map.html">Map</a>
+  <a href="inland.html" class="active">Inland Dives</a>
+</nav>
+<header>
+  <h1>UK INLAND DIVE SITES <span class="tag">// quarries &amp; lakes</span></h1>
+  <ul class="feat">
+    <li>Verified current status &amp; on-site fills</li>
+    <li>Distance from Halifax (sorted nearest first)</li>
+    <li>Live air temperature &amp; weather per site</li>
+    <li>Depth, water temp, visibility &amp; facilities</li>
+  </ul>
+</header>
+<div class="bar">
+  <span class="upd" id="upd">Loading live weather…</span>
+  <button onclick="load()">↻ REFRESH</button>
+</div>
+<div class="wrap">
+  <div class="legend">
+    <b>On-site fills:</b> <span class="yes">Yes</span> = air (often nitrox/trimix) on site · <span class="no">No</span> = fill before you travel
+    (as a Halifax base, Academy Divers in Sowerby Bridge does air/nitrox/trimix). &nbsp;
+    <b>Water temp:</b> a warm summer surface layer sits over cold water (~4–8 °C) below the thermocline year-round — deep sites are cold at depth in all seasons. &nbsp;
+    <b class="no">Wild sites (red)</b> — Dorothea &amp; Hodge Close are unmanaged, with no staff, fills or rescue and a history of fatalities: experienced, self-sufficient divers only. &nbsp;
+    Always confirm current opening &amp; booking on the operator’s site before travelling.
+  </div>
+  <div id="out"><p class="sub">Loading…</p></div>
+</div>
+<footer>
+  Live air weather by <a class="fc" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Companion to the UK Inland Dive Sites spreadsheet.
+</footer>
+<script src="data.js"></script>
+<script>
+function gmap(s){return "https://www.google.com/maps/search/?api=1&query="+s.lat+","+s.lon;}
+function infoI(s){return "https://www.google.com/search?q="+encodeURIComponent(s.n+" dive site "+s.area);}
+function fetchInland(){
+  var lats=INLAND.map(function(s){return s.lat;}).join(","),lons=INLAND.map(function(s){return s.lon;}).join(",");
+  var u="https://api.open-meteo.com/v1/forecast?latitude="+lats+"&longitude="+lons+"&current=temperature_2m,weather_code,wind_speed_10m,precipitation&wind_speed_unit=kn&timezone=auto";
+  return fetchJSON(u).then(asArr);
+}
+function render(wx){
+  var list=INLAND.slice().sort(function(a,b){return a.halifax-b.halifax;});
+  var html="<div class='tablewrap'><table><thead><tr>"+
+    "<th>Site</th><th>Area</th><th>Max depth</th><th>Water temp</th><th>Viz</th><th>On-site fills</th><th>Cost / booking</th><th>From Halifax</th><th>Level</th><th>Live now</th><th>Notes</th></tr></thead><tbody>";
+  list.forEach(function(s){
+    var idx=INLAND.indexOf(s);
+    var live="<span class='sub'>—</span>";
+    if(wx&&wx[idx]&&wx[idx].current){var c=wx[idx].current;
+      live="<span class='num'>"+Math.round(c.temperature_2m)+"°C</span> · "+esc(wmo(c.weather_code))+" · <span class='num'>"+Math.round(c.wind_speed_10m)+"</span> kn"+((c.precipitation&&c.precipitation>0)?" · <span class='num'>"+c.precipitation+"</span>mm":"");}
+    var web=s.web?("<a class='fc' href='"+s.web+"' target='_blank' rel='noopener'>website ↗</a> · "):"";
+    var links="<span class='lnk'>"+web+"<a class='fc' href='"+gmap(s)+"' target='_blank' rel='noopener'>map ↗</a></span>";
+    var fills=s.fills?"<span class='yes' title='"+esc(s.fillnote)+"'>Yes</span>":"<span class='no' title='"+esc(s.fillnote)+"'>No</span>";
+    var lvl=s.wild?"<span class='lvlwild'>"+esc(s.level)+"</span>":esc(s.level);
+    html+="<tr"+(s.wild?" style='background:rgba(255,93,108,.06)'":"")+">"+
+      "<td class='site'>"+esc(s.n)+"<span class='type'>"+esc(s.type)+"</span>"+links+"</td>"+
+      "<td class='sub'>"+esc(s.area)+"</td>"+
+      "<td><span class='num'>"+s.maxD+"</span> m</td>"+
+      "<td class='sub'>"+esc(s.temp)+"</td>"+
+      "<td class='sub'>"+esc(s.viz)+"</td>"+
+      "<td>"+fills+"</td>"+
+      "<td class='sub'>"+esc(s.cost)+"<br>"+esc(s.booking)+"</td>"+
+      "<td><span class='num'>≈"+s.halifax+"</span> mi</td>"+
+      "<td class='sub'>"+lvl+"</td>"+
+      "<td class='sub'>"+live+"</td>"+
+      "<td class='sub'>"+esc(s.notes)+"</td></tr>";
+  });
+  html+="</tbody></table></div>";
+  document.getElementById("out").innerHTML=html;
+}
+function load(){
+  document.getElementById("upd").textContent="Loading live weather…";
+  render(null);
+  fetchInland().then(function(wx){
+    render(wx);
+    var now=new Date();
+    document.getElementById("upd").innerHTML="Live weather updated <b class='num'>"+now.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+", "+now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})+"</b>";
+  }).catch(function(e){
+    document.getElementById("upd").innerHTML="<span class='sub'>Live weather unavailable — site details below are still accurate.</span>";
+  });
+}
+load();
+setInterval(load,15*60*1000);
+</script>
+</body>
+</html>
