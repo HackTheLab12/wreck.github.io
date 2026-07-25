@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Dive Sites — Live Map</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  #map{height:70vh;min-height:460px;margin:8px 18px;border:1px solid var(--panelb);border-radius:16px;box-shadow:0 0 30px rgba(63,224,208,.08);background:#0a1320}
+  .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9) saturate(.85)}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0e1a2b;color:var(--ink);border:1px solid var(--panelb)}
+  .leaflet-popup-content{font-family:"Segoe UI",system-ui,Arial,sans-serif;font-size:13px;margin:12px 14px}
+  .leaflet-popup-content b{color:#fff}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--mut)}
+  .leaflet-control-attribution{background:rgba(7,11,20,.7)!important}
+  .leaflet-control-attribution,.leaflet-control-attribution a{color:var(--mut)!important}
+  .leaflet-bar a{background:#0e1a2b;color:var(--ink);border-color:var(--panelb)}
+  .leaflet-control-layers{background:#0e1a2b!important;color:var(--ink);border:1px solid var(--panelb)!important;border-radius:10px!important}
+  .leaflet-control-layers-toggle{filter:invert(1)}
+  .leaflet-control-layers label{color:var(--ink);font-size:13px;padding:2px 0}
+  .shore-diamond{width:14px;height:14px;transform:rotate(45deg);border-radius:2px;border:1.5px solid #0a0e17;box-shadow:0 0 6px rgba(0,0,0,.4)}
+  .mtype{font-size:11px;color:var(--mut);margin-right:14px}
+  .mtype .swatch{display:inline-block;vertical-align:middle;margin-right:5px}
+  .mtype .circ{width:11px;height:11px;border-radius:50%;background:#8fa6c0;border:1.5px solid #0a0e17}
+  .mtype .diam{width:10px;height:10px;background:#8fa6c0;border:1.5px solid #0a0e17;transform:rotate(45deg)}
+</style>
+</head>
+<body>
+<nav class="top">
+  <span class="brand">◈ UK DIVE SITES</span>
+  <a href="index.html">Home</a>
+  <a href="wrecks.html">Wreck Dives</a>
+  <a href="shores.html">Shore Dives</a>
+  <a href="map.html" class="active">Map</a>
+  <a href="inland.html">Inland Dives</a>
+</nav>
+<header><h1>🗺️ Live Dive Map <span class="tag">// conditions now</span></h1></header>
+<div class="bar">
+  <span class="chip go" id="cGo">GO 0</span>
+  <span class="chip cau" id="cCau">CAUTION 0</span>
+  <span class="chip no" id="cNo">NO-GO 0</span>
+  <span class="upd" id="upd">Loading…</span>
+  <button onclick="load()">↻ REFRESH</button>
+</div>
+<div id="map"></div>
+<div class="wrap">
+  <div class="legend">
+    <span class="mtype"><span class="swatch circ"></span><b>Circle</b> = wreck (boat dive)</span>
+    <span class="mtype"><span class="swatch diam"></span><b>Diamond</b> = shore dive</span><br>
+    <span class="dot go"></span><b>GO</b> · <span class="dot cau"></span><b>CAUTION</b> · <span class="dot no"></span><b>NO-GO</b> ·
+    grey = no data / no-dive. Marker colour = each site's live Dive-Now status. Click a marker for live conditions and a link to its detail page.
+    Use the layers control (top-right of the map) to show/hide wrecks or shore dives independently. Counts above reflect whichever layers are currently shown.
+    If the map background is blank but markers show, your browser is blocking the tile server — the data still works.
+  </div>
+</div>
+<footer><div id="safetybox"></div></footer>
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+document.getElementById('safetybox').innerHTML = safetyBannerHTML();
+var map,layerWrecks,layerShore,ctrl;
+function mapReady(){return typeof L!=='undefined'&&map&&layerWrecks&&layerShore;}
+function initMap(){
+  if(typeof L==='undefined'){
+    document.getElementById('upd').innerHTML="<span class='err'>Map library didn't load — an ad-blocker or Brave Shields may be blocking the CDN. Allow cdnjs.cloudflare.com &amp; openstreetmap.org (or turn Shields off for this page), then hit Refresh.</span>";
+    return false;}
+  map=L.map('map',{scrollWheelZoom:true}).setView([55.0,-4.6],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
+  layerWrecks=L.layerGroup().addTo(map);
+  layerShore=L.layerGroup().addTo(map);
+  var layersObj={};
+  layersObj["🚢 Wrecks ("+SITES.length+")"]=layerWrecks;
+  layersObj["◆ Shore dives ("+SHORE.length+")"]=layerShore;
+  ctrl=L.control.layers(null,layersObj,{collapsed:false}).addTo(map);
+  map.on('overlayadd overlayremove',updateCounts);
+  return true;
+}
+function colorFor(c){return {go:"#22e39a",cau:"#ffcf4d",no:"#ff5d6c",nd:"#7f8fa6"}[c]||"#7f8fa6";}
+function diamondIcon(col){
+  return L.divIcon({className:'',html:"<div class='shore-diamond' style='background:"+col+"'></div>",iconSize:[14,14],iconAnchor:[7,7]});
+}
+var LASTVERDICTS=[]; // {v:num, inWrecks:bool, inShore:bool}
+function updateCounts(){
+  var go=0,cau=0,no=0;
+  LASTVERDICTS.forEach(function(item){
+    var visible=(item.inWrecks&&map.hasLayer(layerWrecks))||(item.inShore&&map.hasLayer(layerShore));
+    if(!visible)return;
+    if(item.v===0)go++;else if(item.v===1)cau++;else if(item.v===2||item.v===3)no++;
+  });
+  document.getElementById('cGo').textContent="GO "+go;
+  document.getElementById('cCau').textContent="CAUTION "+cau;
+  document.getElementById('cNo').textContent="NO-GO "+no;
+}
+function popupFor(s,c,detailURL,extra){
+  var pill="<span class='pill "+(s.nd?"nd":c.cls)+"'>"+(s.nd?"NO DIVE":c.lab)+"</span>";
+  var wind=(c.gustKn==null)?"—":fmtWind(c.windKn)+" "+(windU())+" (g "+fmtWind(c.gustKn)+")";
+  var wv=waveTxt(c.wave)||"—";
+  var tide=s.nd?"":("<br>Tide: "+esc(c.tideMain)+(c.tideSub?" <span class='sub'>("+esc(c.tideSub)+")</span>":""));
+  return "<b>"+esc(s.n)+"</b><br><span class='sub'>"+esc(s.r)+"</span>"+(extra?"<br><span class='sub'>"+esc(extra)+"</span>":"")+"<br>"+pill+
+    "<br>Wind: "+wind+"<br>Waves: "+wv+tide+
+    "<br><a class='fc' href='"+detailURL+"'>Details →</a> &nbsp; <a class='fc' href='"+tideURL(s.r)+"' target='_blank' rel='noopener'>tides ↗</a>";
+}
+function load(){
+  if(!mapReady())return;
+  document.getElementById('upd').textContent="Loading…";
+  var ALL=SITES.concat(SHORE);
+  fetchAll(2,ALL).then(function(d){
+    layerWrecks.clearLayers();layerShore.clearLayers();
+    LASTVERDICTS=[];
+    var pts=[];
+    SITES.forEach(function(s,i){
+      var c=computeConditions(s,d.F[i],d.M[i],d.now);
+      var col=colorFor(s.nd?"nd":(c.cls||"nd"));
+      LASTVERDICTS.push({v:c.v,inWrecks:true,inShore:false});
+      var pop=popupFor(s,c,wreckURL(s),s.wreck);
+      var m=L.circleMarker([s.lat,s.lon],{radius:9,color:'#0a0e17',weight:1.5,fillColor:col,fillOpacity:.95});
+      m.bindPopup(pop);m.bindTooltip(s.n,{direction:'top'});m.addTo(layerWrecks);
+      pts.push([s.lat,s.lon]);
+    });
+    SHORE.forEach(function(s,j){
+      var i=SITES.length+j;
+      var c=computeConditions(s,d.F[i],d.M[i],d.now);
+      var col=colorFor(c.cls||"nd");
+      LASTVERDICTS.push({v:c.v,inWrecks:false,inShore:true});
+      var pop=popupFor(s,c,shoreURL(s),s.type+" · "+s.entry.split(/[,;]/)[0]);
+      var m=L.marker([s.lat,s.lon],{icon:diamondIcon(col)});
+      m.bindPopup(pop);m.bindTooltip(s.n,{direction:'top'});m.addTo(layerShore);
+      pts.push([s.lat,s.lon]);
+    });
+    updateCounts();
+    var now=new Date();
+    document.getElementById('upd').innerHTML="Updated <b class='num'>"+now.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+", "+now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})+"</b>";
+    if(!window._fit){map.fitBounds(pts,{padding:[40,40]});window._fit=1;}
+  }).catch(function(e){
+    document.getElementById('upd').innerHTML="<span class='err'>Live data unavailable ("+esc(e.message)+")</span>";
+  });
+}
+if(initMap()){load();setInterval(load,15*60*1000);}
+</script>
+</body>
+</html>

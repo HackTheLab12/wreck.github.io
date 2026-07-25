@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Dive Sites</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .hero{padding:40px 26px 6px;text-align:center}
+  .hero h1{font-size:44px;margin:0;letter-spacing:1px;text-shadow:0 0 30px rgba(63,224,208,.4)}
+  .hero h1 .tag{color:var(--cyan)}
+  .hero p{color:var(--mut);font-size:16px;max-width:720px;margin:14px auto 0;line-height:1.7}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;max-width:1040px;margin:28px auto 10px;padding:0 26px}
+  a.card{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--panelb);border-radius:16px;
+    padding:24px 22px;backdrop-filter:blur(8px);transition:.18s;position:relative;overflow:hidden}
+  a.card:hover{border-color:var(--cyan);box-shadow:0 0 34px rgba(63,224,208,.18);transform:translateY(-3px)}
+  a.card .ico{font-size:34px;margin-bottom:8px}
+  a.card h2{margin:0 0 8px;font-size:20px;letter-spacing:.5px;color:#fff}
+  a.card h2 span{color:var(--cyan)}
+  a.card p{margin:0;color:var(--mut);font-size:13.5px;line-height:1.6}
+  a.card .go{margin-top:14px;color:var(--cyan);font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+  .foot{text-align:center;color:var(--mut);font-size:12px;padding:24px 26px 40px;line-height:1.7;max-width:820px;margin:0 auto}
+</style>
+</head>
+<body>
+<nav class="top">
+  <span class="brand">◈ UK DIVE SITES</span>
+  <a href="index.html" class="active">Home</a>
+  <a href="wrecks.html">Wreck Dives</a>
+  <a href="shores.html">Shore Dives</a>
+  <a href="map.html">Map</a>
+  <a href="inland.html">Inland Dives</a>
+</nav>
+<div class="hero">
+  <h1>UK DIVE SITES <span class="tag">//</span></h1>
+  <p>Live conditions and verified detail for scuba diving around the UK — sea wrecks, shore dives and inland quarries &amp; lakes. Weather is looked up by each site’s coordinates and refreshes every time you open a page.</p>
+</div>
+<div class="cards">
+  <a class="card" href="wrecks.html">
+    <div class="ico">🚢</div>
+    <h2>Wreck <span>Dives</span></h2>
+    <p>30 sea wreck sites from Scapa Flow to Plymouth. Live wind, waves, 12-hour outlook, tide state and a green/amber/red “Dive Now?” per site. Click any wreck for its full dossier.</p>
+    <div class="go">Open dashboard →</div>
+  </a>
+  <a class="card" href="shores.html">
+    <div class="ico">🏖️</div>
+    <h2>Shore <span>Dives</span></h2>
+    <p>15 verified shore-access sites from Dorset to the Scottish Borders, Argyll and Co. Antrim. Live wind, waves, entry type, marine life and a green/amber/red “Dive Now?” per site.</p>
+    <div class="go">Open dashboard →</div>
+  </a>
+  <a class="card" href="map.html">
+    <div class="ico">🗺️</div>
+    <h2>Live <span>Map</span></h2>
+    <p>Every wreck and shore dive on a dark map, each marker coloured by its current Dive-Now status — circles for wrecks, diamonds for shore dives, with a layer toggle for each.</p>
+    <div class="go">Open map →</div>
+  </a>
+  <a class="card" href="inland.html">
+    <div class="ico">⛰️</div>
+    <h2>Inland <span>Dives</span></h2>
+    <p>15 quarries, lakes &amp; wild sites (13 currently open) — depths, water temperature, facilities, on-site fills and live weather. Sorted nearest to Halifax first, with closures and access restrictions flagged.</p>
+    <div class="go">Open inland sites →</div>
+  </a>
+</div>
+<div id="safetybox"></div>
+<div class="foot">
+  A planning aid, not a dive plan — always confirm conditions, tides, qualifications, opening and booking locally, and dive within your training.
+  Weather by Open-Meteo · tides via tidetime.org.
+</div>
+<script src="data.js"></script>
+<script>document.getElementById('safetybox').innerHTML = safetyBannerHTML();</script>
+</body>
+</html>
